@@ -1,0 +1,398 @@
+---
+title: "stats261 final project"
+author: "shimmy"
+date: "3/20/2021"
+output: 
+  pdf_document:
+    extra_dependencies: ["amsmath", "graphicx"]
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+set.seed(1)
+library(tidyverse)
+```
+
+# Question 1
+```{r}
+X <- c(21, 22, 23, 24, 25 , 26, 27) # vector of our sample
+X
+```
+
+## a
+```{r}
+mean_X <- sum(X)/length(X) # explicit formula for mean
+mean_X
+```
+
+## b
+```{r}
+#fix
+f <- function(x) {
+  mean_x <- sum(x)/length(x)
+  v <- (x - mean_x)^2 # using the formula for variance of (x - Mu_x)^2
+  return(sum(v)/length(v))
+}
+
+
+pop_var <- f(X)
+pop_var
+
+```
+
+## c
+```{r}
+
+d= expand.grid(X,X,X,X)
+head(d)
+
+```
+
+## d
+```{r}
+d_frame<- as.data.frame(d)  # so that I can 
+#use the data frame functionality in R
+d_matrix <- d_frame %>% as.matrix() # so i can use matrix functionality in R
+funct <- function(x){
+  return(mean(x)) #  to calculate the mean of each row
+}
+
+d_frame$X_bar <- apply(d_matrix, 1 , funct) 
+# applying function to each row d_matrix and saving it to d_frame
+head(d_frame)
+
+
+```
+
+## e
+```{r, warning= FALSE}
+freq_table <- d_frame  %>% group_by(X_bar) %>% summarise(frequency=n()) 
+# this groups the different X_bars together and forms a count of the different
+#X_bars
+head(freq_table)
+freq_table$prop <- freq_table$frequency/2401 
+# dividing by 2401 because that is the number of observations
+#and therefore gives us the frequency
+head(freq_table)
+
+```
+
+
+## f
+```{r}
+freq_table %>% ggplot(aes(x = X_bar, y = prop))  + geom_point() + geom_line()
+# geom_point gives the scatter plot, and geom_line fits a curve to the points
+
+```
+$$\text{This looks like a normal distribution with }\mu = 24$$
+## g
+```{r}
+prop <- as.vector(freq_table$prop)
+head(prop)
+value <- as.vector(freq_table$X_bar)
+head(value)
+sum(prop*value) # the proportion of each value times it's value
+```
+
+## h
+```{r}
+
+prop_var<-sum(prop*(value^2)) - (sum(prop*value))^2
+# using the variance formula based off the first two moments
+prop_var 
+```
+
+## i
+
+$$\bar{x} \text{ is distributed as } N(\mu_0, \sigma_0^2) \text{where } \mu_0 = \mu \text{ and } \sigma_0^2 = \frac{\sigma^2}{n}, \text{ where x is distirbuted as }{N(\mu, \sigma^2)}$$
+
+\newpage
+# Question 2
+
+```{r}
+f_2 <- function(x) {
+  mean_x <- sum(x)/length(x)
+  v <- (x - mean_x)^2
+  return(sum(v)/(length(v) -1)) # the varance for the unbiase estimator
+}
+d_frame$S_square <- apply(d_matrix, 1 , f_2)
+head(d_frame)
+f_3 <- function(x){
+  mean_x <- sum(x)/length(x)
+  v<- (x - mean_x)^2
+  return(sum(v)/length(v)) # variance for the bias estimator
+}
+d_frame$sigma_square<- apply(d_matrix, 1, f_3)
+head(d_frame)
+
+```
+
+## a
+```{r}
+bias_s_square <-(mean(d_frame$S_square) - 4)^2 # bias formula
+bias_s_square
+bias_sigma_square <- (mean(d_frame$sigma_square) - 4)^2 #bias formula
+bias_sigma_square
+```
+
+## b
+```{r}
+var_sigma_square <- mean((d_frame$sigma_square^2)) -
+  (mean(d_frame$sigma_square))^2 # variance formula based off of moments
+MSE_sigma_square <- mean((d_frame$sigma_square - 4)^2)
+#explicit MSE formula
+MSE_sigma_square
+var_sigma_square
+bias_sigma_square
+```
+$$ \text{ As we have shown that } var(\hat\sigma^2) = 3.1875$$
+$$\text{ and we have shown that } \\MSE(\hat\sigma^2) = 4.1875 $$
+$$\\\text{ and we have shown that } Bias (\hat\sigma^2) = 1\\$$
+$$\text{ therefore we have shown that the desired identity is true numerically} $$
+
+\newpage
+# Question 3
+
+## a
+```{r}
+lower <- function(x){
+  mean_x <- mean(x)
+  sigma = 2
+  return( mean_x - qnorm(0.975)*(2/2)) # formula for lower CI for normal
+}
+d_frame$Lower_CI <- apply(d_matrix, 1 , lower)
+# finding the lower bound for the confidence interval for each row
+head(d_frame)
+upper <- function(x){
+  mean_x <- mean(x)
+  sigma = 2
+  return(mean_x + qnorm(.975)*2/2) # formula for upper CI for normal
+  
+}
+d_frame$Upper_CI<- apply(d_matrix, 1, upper)
+# finding the upper bound for the confidence interval for each row
+head(d_frame)
+d_frame <-d_frame %>% 
+  mutate(contains_true = if_else(Lower_CI <= 24 & 24 <= Upper_CI, 1, 0))
+# creating a new column  which has a value of 1 if 24 is in the confidence 
+#interval, and 0 if it is not
+head(d_frame)
+mean(d_frame$contains_true) 
+# find the proportion of rows which contain the confidence interval which is 
+#the proportion of the intervals the includes  \mu = 24
+
+
+```
+
+## b
+```{r}
+T <- (mean(c(24,25,26,27)) - 24)/(2/sqrt(4)) # the test statistic
+T
+p_value<- 2*(1- pnorm(T)) # the formula for the p_value using CLT
+p_value
+# 
+
+```
+$$\text{therefore using the central limit theorem the person will get a p-value of .1336144,}$$
+$$\\\text{implying that we would not be able to reject the null hypothesis of }$$
+$$\\H_0: \mu = 24 \text{ where } \alpha = 0.05$$
+
+## c
+```{r}
+extreme <-1.5
+# this is the difference between the mean of the sample and the expected mean
+d_frame<- d_frame %>% 
+  mutate(at_least_as_extreme = if_else(abs(X_bar - 24) >= 1.5, 1, 0))
+# creating a new column that takes a value of 1 if the X_bar value for that row
+# is at least 1.5 away from the actual mean of 24,
+# and has a value of 0 otherwise
+head(d_frame)
+mean(d_frame$at_least_as_extreme)
+# the proportion of rows that has an xbar at least 1.5 away from 24
+
+```
+
+## d
+$$\text{The reason for the difference, is that the first approach uses CLT, and that is not entirely justified here.}$$
+$$\text{I would expect these values to be similiar in a case where one can apply the central limit thorem}$$
+
+$$\text{ therefore, I would expect it to be true if the sample came from a normal distirbution or if the samples where}$$
+
+$$\\ \text{large enough that central limit theorem could be applied}$$
+
+\newpage
+# Question 4
+
+## a
+```{r}
+sample_4m_unif_one<- function(){
+  s=runif(2, 0, 1)
+  return(mean(s))
+}
+X_bar=replicate(10000,sample_4m_unif_one())
+plot(density(X_bar), main ="unif[0,1], n  =2")
+# this is the provided code from the assignment sheet
+```
+
+## b
+```{r}
+sample_4m_unif_two<- function()
+  {
+s=runif(5, 0, 1)
+return(mean(s))
+}
+X_bar=replicate(10000,sample_4m_unif_two())
+plot(density(X_bar), main ="unif[0,1], n  =5") 
+# this is the provided code from the assignment sheet
+
+```
+
+## c
+```{r}
+sample_4m_chisq_one<- function()
+  {
+s=rchisq(5, df=2)
+return(mean(s))
+}
+X_bar=replicate(10000,sample_4m_chisq_one())
+plot(density(X_bar), main = "X^2_{df=2}, n =5")
+# this is the provided code from the assignment sheet
+```
+
+## d
+```{r}
+sample_4m_chisq_two<- function()
+  {
+s=rchisq(30, df=2)
+return(mean(s))
+}
+X_bar=replicate(10000,sample_4m_chisq_two())
+plot(density(X_bar), main = "X^2_{df=2}, n =30")
+# this is the provided code from the assignment sheet
+```
+
+## e 
+```{r}
+sample_4m_chisq_three<- function()
+  {
+s=rchisq(5, df=50)
+return(mean(s))
+}
+X_bar=replicate(10000,sample_4m_chisq_three())
+plot(density(X_bar), main = 
+       "X^2_{df=50}, n =5")
+# this is the provided code from the assignment sheet
+```
+
+## f
+
+$$ \text{ let us notice the following about the different distirubtions }$$
+$$\\  skew(\chi^2_2) = \sqrt{(8/2)} = 2, skew(\chi^2_{50}) = \sqrt{8/50} = .4, skew(unif[0,1]) = 0$$
+$$\text{ I would argue the following: that if you have a small skew then you would need a small sample for the graph}$$
+$$\text{to look normal, but if you have a large skew then you would need a larger sample}$$
+
+\newpage
+# Question 5
+
+## a
+
+### i 
+```{r}
+norm_function <- function(mu = 10, sd = sqrt(16)){
+  smple<- rnorm(20, mu,sd)
+  L_theta0 <- (2*pi*sd^2)^(-20/2)*exp(-1/(2*sd^2)*sum((smple - mu)^2))
+  x_bar <- mean(smple)
+  L_theta1<- (2*pi*sd^2)^(-20/2)*exp(-1/(2*sd^2)*sum((smple - x_bar)^2))
+  w <- -2*log(L_theta0/L_theta1)
+  return(w)
+}
+# this is the desired function requested for the assimgent
+
+```
+
+### ii 
+```{r}
+LRT_vec <- replicate(100000, norm_function()) 
+head(LRT_vec)
+```
+
+### iii
+```{r}
+ LRT_vec %>%
+  hist(freq = FALSE, breaks = 100, main = "Histogram of normal functions")
+```
+
+#### iv
+```{r}
+amount <- 100000
+chisq_sample <- rchisq(amount, 1)
+head(chisq_sample)
+{
+  LRT_vec %>%
+    hist(freq = FALSE,
+         breaks = 100, main = "Histogram of normal function, with x^2 overlay") 
+  lines(density(chisq_sample), col = 490 , lwd = 3) # col gives coloring and lwd 
+  # makes it slightly thicker. 
+}
+# this is the requested graph
+```
+
+## b
+
+###I
+```{r}
+exp_function <- function(Lambda =.1){
+  smple <- rexp(20, Lambda)
+  L_theta0 <- Lambda^20 *exp(-Lambda *sum(smple))
+  MLE <- 1/mean(smple) # this is the MLE for the parameter of an exponential
+  L_theta1 <- MLE^20*exp(-MLE*sum(smple))
+  w <- -2*log(L_theta0/L_theta1)
+  return(w)
+}
+# this is the requested function for the assignment
+
+```
+
+###II
+```{r}
+LRT_vect <- replicate(100000, exp_function())
+head(LRT_vect)
+
+
+```
+
+###III
+```{r}
+hist(LRT_vect, freq = FALSE, breaks= 100, 
+     main = "Histogram of exponential functions")
+```
+
+###IV
+```{r}
+amount <- 100000
+chisq_sample <- rchisq(amount, 1)
+head(chisq_sample)
+{
+  LRT_vect %>%
+    hist(freq = FALSE,
+         breaks = 100, 
+         main = expression(
+           "Histogram of exponential functions with X^2  overlay"
+           ))
+  lines(density(chisq_sample), col = 490, lwd = 3)
+}
+# this is the requested graph for the assigment
+
+```
+
+## C
+$$\text{Both of these histograms will converge to } \chi^2_1 \text{ as } -2\ln\Lambda \text{ converges to  }$$
+
+$$\\\chi^2_1  \text{ as in both these cases the number of free paramters under the null is}$$ 
+$$\text{one less that the number of free paramters in the paramater space}$$
+$$\text{therefore, in both these cases it would converge to a } \chi^2_1 \text{regardless of the size of n}$$
+
+
+$$\text{The reason for this is that LRTvec is really large}$$
+
+$$\text{and as the sample goes to infinity it will converge to }\chi^2_1$$
